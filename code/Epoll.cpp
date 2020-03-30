@@ -5,6 +5,8 @@
 	> Created Time: 2020年03月29日 星期日 22时51分37秒
  ************************************************************************/
 #include "Epoll.h" 
+#include "ThreadPool.h"
+#include "HttpHandler.h"
 
 #include <memory>
 #include <sys/epoll.h> //epoll  
@@ -60,15 +62,30 @@ int Epoll:wait(int timeout_MS){
 void Epoll::handleEvent(int listenfd,std::shared_ptr<ThreadPool> &threadpool,int eventsNum){
 	assert(eventsNum>0);
 	for(int i=0;i<eventsNum;i++){
-		HttpHandler *handler = (HttpHandler *)(events_[i].data.ptr);
+		struct epoll_event &ev = events_[i];
+	
+		HttpHandler *handler = (HttpHandler *)(ev.data.ptr);
 		int fd = handler -> getfd();
 		
 		if(fd == listenfd){ //由于listenfd只监听了读事件 所以只有可能是产生了新连接
 			NewConnection_();
 		}else{
-			
-
-
+			//检查出错事件
+			if((ev.events & EPOLLERR) || (ev.events & EPOLLHUP)){
+				//错误关闭连接
+				handler -> setNoWorking();
+				CloseConnection_(handler);
+			}else if(ev.events & EPOLLOUT){//先处理写事件
+				//处理写事件
+				handler -> setWorking();
+				threadpool -> pushJob(std::bind(MakeResponse_,handler));				
+			}else if(ev.events & EPOLLIN){
+				//处理读事件 把任务挂到线程池任务队列中
+				handler -> setWorking();
+				threadpool -> pushJob(std::bind(HandleRequest_,handler));
+			}else{
+				printf("Epoll::handleEvent unexpected event\n");
+			}
 		}
 		
 
