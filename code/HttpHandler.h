@@ -32,7 +32,7 @@ public:
 	};
 
 	enum Version {//HTTP版本 
-		Unknown,HTTP10.HTTP11
+		Unknown,HTTP10,HTTP11
 	};
 
 	HttpHandler(int fd);

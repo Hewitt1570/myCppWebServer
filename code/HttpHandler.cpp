@@ -7,19 +7,18 @@
 #include "HttpHandler.h"
 
 #include <unistd.h>
-#include<iostream>
 using namespace HW_TXL;
 
 HttpHandler::HttpHandler(int fd):
 	fd_(fd),
 	working_(false),
-	timer(nullptr),
+	timer_(nullptr),
 	state_(ExpectRequestLine),
 	method_(Invalid),
 	version_(Unknown){}
 
 HttpHandler::~HttpHandler(){
-	close(fd);
+	close(fd_);
 }
 
 int HttpHandler::read(int &SavedErrno){
@@ -119,4 +118,51 @@ bool HttpHandler::__setMethod(const char *start,const char *end){
 	return method_ !=Invalid;
 }
 
+void HttpHandler::__addHeader(const char *begin,const char *colon,const char *end){
+	std::string field(begin,colon);
+	++colon;
+	while(colon < end && *colon==' ')
+		++colon;
+	
+	std::string value(colon,end);
+	while(!value.empty() && value.back()==' ')
+		value.pop_back();
 
+	headers_[field] = value;
+}
+
+std::string HttpHandler::getMethod() const {
+	std::string ret;
+	if(method_ == GET){
+		ret = "GET";
+	}else if(method_ == POST){
+		ret  = "POST";
+	}else if(method_ == HEAD){
+		method_ = "HEAD";
+	}else if(method_ == PUT){
+		method_ = "PUT";
+	}else if(method_ == DELETE){
+		method_ = "DELETE";
+	return method_;
+}
+
+std::string HttpHandler::getHeader(const std::string &field){
+	std::string ret;
+	if(headers_.count(field))ret = headers_[field];
+	return ret;
+}
+
+bool HttpHandler::keepAlive() const{
+	std::string connection = getHeader("Connection");
+	bool res = connection == "Keep-Alive" || version_ == HTTP11 && connection != "close";
+	return res;
+}
+
+void HttpHandler::resetParse(){
+	state_ = ExpectRequestLine;
+	method_ = Invalid;
+	version_ = Unknown;
+	path_ = "";
+	query_ = "";
+	headers_.clear();
+}

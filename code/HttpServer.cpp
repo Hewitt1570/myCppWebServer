@@ -8,6 +8,9 @@
 #include "Epoll.h"
 #include "TimerManager.h"
 #include "HttpServer.h"
+#include "HttpHandler.h"
+#include "HttpResponse.h"
+#include "ThreadPool.h"
 
 #include <iostream>
 #include <cassert>
@@ -22,8 +25,8 @@ HttpServer::HttpServer(int port,int threadNum):
 	listenFd_(utils::createListenFd(port_)),
 	epoll_(new Epoll()),
 	listenHandler_(new HttpHandler(listenFd_)),
-	threadPool_(new ThreadPool()),
-	TimerManager_(new TimerManager);
+	threadPool_(new ThreadPool(threadNum)),
+	TimerManager_(new TimerManager());
 {
 	assert(listenFd_>0);
 }
@@ -116,14 +119,26 @@ void HttpServer::HandleRequest(HttpHandler *handler){
 	}
 	//请求报文正常读入缓冲区  开始解析报文
 	
+	//解析失败 发送错误报文 断开连接 
 	if(!handler -> parseHttp()){
+		HttpResponse response(400,"",false);
+		handler -> appendToOutBuffer(response.makeResponse());
 		
-	}
+		//XXX 关闭前只写了一次 可能会有问题
+		int writeErrno;
+		handler -> write(writeErrno);
+		handler -> setNoWorking();
+		CloseConnection(handler);
+		return;
+	}	
 	
+	//解析完成 
 	if(handler -> parseFinished()){
-		
+		HttpResponse response(200,handler->getPath(),handler->keepAlive());
+		handler -> appendToOutBuffer(response.makeResponse());
+		TimerManager_->addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
+		epoll_ -> Mod(handler->getfd(),handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT);
 	}
-
 }
 
 void HttpServer::MakeResponse(HttpHandler *handler){

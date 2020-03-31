@@ -9,7 +9,9 @@
 
 #include <memory>  // unique_ptr shared_ptr
 
-
+#define TIMEOUT -1 //epoll_wait 的超时事件  -1表示阻塞等待
+#define CON_TIMEOUT 500  //长连接保持时间  500ms 
+#define NUM_WORKERS 4  //默认线程池大小
 
 namespace HW_TXL{
 
@@ -25,6 +27,7 @@ public:
 	~HttpServer();
 
 	void run();  //开始运行
+
 private:  //为四类主要事件编写处理方法
 	void AcceptNewConnection();  //接受新连接
 	void CloseConnection();	//关闭连接
@@ -43,7 +46,7 @@ private:  //私有成员变量
 	ThreadPoolPtr threadPool_;  //线程池
 	TimerManagerPtr timerManager_; //定时器管理器:
 	ListenHandler listenHandler_; //监听套件字指针
-}
+};
 
 }
 
