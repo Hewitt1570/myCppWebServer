@@ -9,7 +9,6 @@
 #include "HttpHandler.h"
 
 #include <memory>
-#include <sys/epoll.h> //epoll  
 #include <unistd.h> //close 
 #include <cstring> //strerror
 #include <cassert> //assert  
@@ -28,7 +27,7 @@ Epoll::~Epoll(){
 //向epoll中添加监听事件
 int Epoll::Add(int fd,HttpHandler *handler,int events){
 	struct epoll_event event;
-	event.data.ptr = (void *)hander;
+	event.data.ptr = (void *)handler;
 	event.events = events;
 	int ret = ::epoll_ctl(epollFd_, EPOLL_CTL_ADD, fd, &event);
 	return ret;
@@ -36,7 +35,7 @@ int Epoll::Add(int fd,HttpHandler *handler,int events){
 //修改监听事件类型
 int Epoll::Mod(int fd,HttpHandler *handler,int events){
 	struct epoll_event event;
-	event.data.ptr = (void *)hander;
+	event.data.ptr = (void *)handler;
 	event.events = events;
 	int ret = ::epoll_ctl(epollFd_, EPOLL_CTL_MOD, fd, &event);
 	return ret;
@@ -44,15 +43,14 @@ int Epoll::Mod(int fd,HttpHandler *handler,int events){
 //将事件从epoll上摘下
 int Epoll::Del(int fd,HttpHandler *handler,int events){
 	struct epoll_event event;
-	event.data.ptr = (void *)hander;
-	event.events = events;
+//	event.events = events;
 	int ret = ::epoll_ctl(epollFd_, EPOLL_CTL_DEL, fd, &event);
 	return ret;
 }
 
 //阻塞监听 
-int Epoll:wait(int timeout_MS){
-	int eventsNum = ::epoll_wait(epollFd_, &*events_.begin(), MAXEVENTS, timeout_MS);
+int Epoll::wait(int timeout_MS){
+	int eventsNum = ::epoll_wait(epollFd_, &*events_.begin(), static_cast<int>(events_.size()), timeout_MS);
 	if(eventsNum < 0){
 		printf("Epoll::wait error: %s\n",strerror(errno));
 	}	
@@ -68,21 +66,25 @@ void Epoll::handleEvent(int listenfd,std::shared_ptr<ThreadPool> &threadpool,int
 		int fd = handler -> getfd();
 		
 		if(fd == listenfd){ //由于listenfd只监听了读事件 所以只有可能是产生了新连接
+		//	printf("new connecton\n");
 			NewConnection_();
 		}else{
 			//检查出错事件
 			if((ev.events & EPOLLERR) || (ev.events & EPOLLHUP)){
 				//错误关闭连接
+			//	printf("出错事件\n");
 				handler -> setNoWorking();
 				CloseConnection_(handler);
-			}else if(ev.events & EPOLLOUT){//先处理写事件
-				//处理写事件
-				handler -> setWorking();
-				threadpool -> pushJob(std::bind(MakeResponse_,handler));				
 			}else if(ev.events & EPOLLIN){
 				//处理读事件 把任务挂到线程池任务队列中
+			//	printf("读事件\n");
 				handler -> setWorking();
 				threadpool -> pushJob(std::bind(HandleRequest_,handler));
+			}else if(ev.events & EPOLLOUT){//先处理写事件
+				//处理写事件 
+			//	printf("写事件\n");
+				handler -> setWorking();
+				threadpool -> pushJob(std::bind(MakeResponse_,handler));				
 			}else{
 				printf("Epoll::handleEvent unexpected event\n");
 			}

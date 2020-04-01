@@ -29,7 +29,7 @@ ssize_t Buffer::readFd(int fd,int &SavedErrno){
 		printf("Buffer::readFd error : %s\n",strerror(errno));
 		SavedErrno = errno;
 	}
-	else if(static<int>(n) < writable){
+	else if(static_cast<int>(n) < writable){
 		hasWritten(n);
 	}
 	else{
@@ -43,7 +43,7 @@ ssize_t Buffer::writeFd(int fd, int &SavedErrno){
 	size_t readable = readableBytes();
 	char *bufPtr = __begin()+readIndex_;
 	ssize_t n;
-	if((n = write(fd,bufPtr,readble))<=0){
+	if((n = ::write(fd,bufPtr,readable))<=0){
 		if( n<0 && errno == EINTR)
 			return 0;
 		else{

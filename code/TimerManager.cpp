@@ -5,13 +5,13 @@
 	> Created Time: 2020年03月30日 星期一 18时09分40秒
  ************************************************************************/
 #include "TimerManager.h"
-
+#include "HttpHandler.h"
 using namespace HW_TXL;
 
 void TimerManager::addTimer(HttpHandler *handler,const int& timeOut,const timeOutCallBack &cb){
 	Timer *timer;
 	{
-		std::unique_lock<mutex> lock(lock_);
+		std::unique_lock<std::mutex> lock(lock_);
 		updateTime();
 		timer = new Timer(now_+MS(timeOut),cb);
 		timerQueue_.push(timer);
@@ -35,11 +35,10 @@ void TimerManager::delTimer(HttpHandler *handler){
 	handler->setTimer(nullptr);
 }
 //处理超时定时器
-void TimerManager::handlerExpiredTimers(){
-	//将超时定时器放到vec中 避免持有锁的时候执行回调函数 
-	std::vector<Timer*>vec;
+void TimerManager::handleExpiredTimers(){
 	{
-		std::unique_lock<mutex> lock(lock_);
+		overTimeNum_ = 0;
+		std::unique_lock<std::mutex> lock(lock_);
 		updateTime();
 		while(!timerQueue_.empty()){
 			Timer *timer = timerQueue_.top();
@@ -54,19 +53,24 @@ void TimerManager::handlerExpiredTimers(){
 				//当前节点未超时  后面的节点必然未超时
 				return;
 			}
-			//进入此处说明超时
-			vec.push_back(timer);
+			//进入此处说明超时 
+			overTime_[overTimeNum_++] = timer;
 			timerQueue_.pop();
+//			timerQueue_.pop();
+//			timer->runCallBack();
+//			delete timer;
 		}
 	}
-	for(int i=0;i<vec.size();i++){ //注意调用顺序
-		vec[i]->runCallBack();
-		delete vec[i];
+	for(int i=0;i<overTimeNum_;i++){
+		overTime_[i]->runCallBack();
+		delete overTime_;
 	}
+  
 }
-int TimerManager::getNextExprireTime(){
-	std::unique_lock<mutex> lock(lock_);
+int TimerManager::getNextExpireTime(){
+	std::unique_lock<std::mutex> lock(lock_);
 	updateTime();
+	int res=-1;
 	while(!timerQueue_.empty()){
 		Timer *timer = timerQueue_.top();
 		if(timer->isDeleted()){
@@ -74,7 +78,7 @@ int TimerManager::getNextExprireTime(){
 			delete timer;
 			continue;
 		}
-		int res = std::chrono::duration_cast<MS>(timer->getExpireTime()-now_).count();
+		res = std::chrono::duration_cast<MS>(timer->getExpireTime()-now_).count();
 		res = res<0?0:res;
 		break;
 	}

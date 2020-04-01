@@ -7,7 +7,7 @@
 #ifndef __HTTPHANDLER_H__
 #define __HTTPHANDLER_H__ 
 
-#define STATIC_ROOT ../www
+#define STATIC_ROOT "../www"
 #include "Buffer.h"
 
 #include <iostream>
@@ -59,7 +59,7 @@ public:
 	void resetParse();
 	std::string getPath()const { return path_; }
 	std::string getQuery()const { return query_; }
-	std::string getHeader(const std::string &field) const;
+	std::string getHeader(const std::string &field)const;
 	std::string getMethod() const;
 	bool keepAlive() const;
 
@@ -71,8 +71,8 @@ private:
 	//设置URL路径
 	void __setPath(const char *begin,const char *end){
 		std::string subPath(begin,end);
-		if(subPath == '/')
-			subPath = "/pipioj.html";
+		if(subPath == "/")
+			subPath = "/index.html";
 		path_ = STATIC_ROOT + subPath;
 	}
 	//设置URL询问

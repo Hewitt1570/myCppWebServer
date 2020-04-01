@@ -26,13 +26,14 @@ class HttpHandler;
 
 //内部类 每个handler对应一个timer
 class Timer{
-pubilc:
+public:
+	
 	Timer(const TimeStamp &when,const timeOutCallBack &cb)
 		:delete_(false),
 		 expireTime_(when),
 		 callBack_(cb){}
 
-	~TImer(){}
+	~Timer(){}
 
 	void del(){delete_ = true;}
 	bool isDeleted() {return delete_;}
@@ -49,25 +50,27 @@ private:
 struct cmp{
 	bool operator ()(Timer *a,Timer *b){
 		assert(a!=nullptr && b!=nullptr);
-		return a->getExpireTime() > b->getNextExprireTime();
+		return a->getExpireTime() > b->getExpireTime();
 	}
 };
 
 //HttpServer通过TimerManager管理定时器
 class TimerManager{
-pubilc:
+public:
 	TimerManager():now_(Clock::now()){}
 	~TimerManager(){}
 	
 	void updateTime(){now_ = Clock::now();}
 	void addTimer(HttpHandler *handler,const int& timeOut,const timeOutCallBack &cb);
 	void delTimer(HttpHandler *handler);
-	void handlerExpiredTimers();
-	int getNextExprireTime(); //返回下次超时时间 in MS
+	void handleExpiredTimers();
+	int getNextExpireTime(); //返回下次超时时间 in MS
 
 private:
 	using TimerQueue = std::priority_queue<Timer*,std::vector<Timer*>,cmp>;
 	
+	Timer* overTime_[1024];
+	int overTimeNum_;
 	TimerQueue timerQueue_;
 	TimeStamp now_;
 	std::mutex lock_;

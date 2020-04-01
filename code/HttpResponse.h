@@ -7,7 +7,7 @@
 #ifndef __HTTPRESPONSE_H__
 #define __HTTPRESPONSE_H__
 
-#include <map>
+#include <unordered_map>
 #include <string>
 
 namespace HW_TXL{
@@ -16,8 +16,8 @@ class Buffer;
 
 class HttpResponse{
 public:
-	static const std::map<int,std::string>stateCode_Message;
-	static const std::map<std::string,std::string>suffix_Type;
+	static const std::unordered_map<int,std::string>stateCode_Message;
+	static const std::unordered_map<std::string,std::string>suffix_Type;
 	
 	HttpResponse(int state,std::string path,bool keepAlive):
 		stateCode_(state),
@@ -28,14 +28,14 @@ public:
 	~HttpResponse(){}
 
 	Buffer makeResponse();
-	void errorResponse(Buffer &outBuffer,std::string &message);
+	void errorResponse(Buffer &outBuffer,const std::string &message);
 	void staticRequest(Buffer &outBuffer,long filesize);
 
 private:
 	std::string __getFileType();
 
 private:
-	std::map<std::string,std::string> headers_;  //响应头部
+	std::unordered_map<std::string,std::string> headers_;  //响应头部
 	int stateCode_;  //状态码
 	std::string path_; //资源路径
 	bool keepAlive_;  //是否为长连接  

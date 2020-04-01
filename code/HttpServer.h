@@ -30,18 +30,18 @@ public:
 
 private:  //为四类主要事件编写处理方法
 	void AcceptNewConnection();  //接受新连接
-	void CloseConnection();	//关闭连接
-	void HandleRequest(); //处理请求事务
-	void MakeResponse();  //对请求作出响应
+	void CloseConnection(HttpHandler *);	//关闭连接
+	void HandleRequest(HttpHandler *); //处理请求事务
+	void MakeResponse(HttpHandler *);  //对请求作出响应
 
 private:  //私有成员变量
-	using EpollPtr = unique_ptr<Epoll>;
-	using ThreadPoolPtr = shared_ptr<ThreadPool>;
-	using TimerManagerPtr = unique_ptr<TimerManager>;
-	using ListenHandler = unique_ptr<HttpHandler>;
-
-	int listenFd_;  //监听套接字
+	using EpollPtr = std::unique_ptr<Epoll>;
+	using ThreadPoolPtr = std::shared_ptr<ThreadPool>;
+	using TimerManagerPtr = std::unique_ptr<TimerManager>;
+	using ListenHandler = std::unique_ptr<HttpHandler>;
+	
 	int port_;  //端口号
+	int listenFd_;  //监听套接字
 	EpollPtr epoll_;  //封装好的Epoll对象指针
 	ThreadPoolPtr threadPool_;  //线程池
 	TimerManagerPtr timerManager_; //定时器管理器:

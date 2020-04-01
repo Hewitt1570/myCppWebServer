@@ -7,12 +7,12 @@
 #ifndef __EPOLL_H__
 #define __EPOLL_H__ 
 
-#include <functinal>  //function
+#include <functional>  //function
 #include <memory>  //shared_ptr
 #include <vector>  //用vector保存返回的epoll_events
 #include <sys/epoll.h> //epoll epoll_event
 
-#define MAXEVENTS 2048
+#define MAXEVENTS 1024
 
 namespace HW_TXL{
 
@@ -22,10 +22,10 @@ class ThreadPool;
 class Epoll{
 public:
 	//定义四种函数指针类型名
-	using NewConnectionCb = function<void()>;
-	using CloseConnectionCb = function<void(HttpHandler*)>;
-	using HandleRequestCb = function<void(HttpHandler*)>;
-	using MakeResponseCb = function<void(HttpHandler*)>;
+	using NewConnectionCb = std::function<void()>;
+	using CloseConnectionCb = std::function<void(HttpHandler*)>;
+	using HandleRequestCb = std::function<void(HttpHandler*)>;
+	using MakeResponseCb = std::function<void(HttpHandler*)>;
 
 
 	Epoll();
@@ -46,7 +46,7 @@ public:
 	void setMakeResponse(const MakeResponseCb &cb){MakeResponse_ = cb;}
 	
 	//对不同的事件类型将相应的处理方法加入到线程池的事件队列中
-	void handleEvent(int listenfd,std::shared_ptr<ThreadPool> &threadpool);
+	void handleEvent(int listenfd,std::shared_ptr<ThreadPool> &threadpool,int eventsNum);
 
 private:
 	using EventList = std::vector<struct epoll_event>;
@@ -58,7 +58,7 @@ private:
 	int epollFd_;
 	EventList events_;
 
-}
+};
 
 
 }

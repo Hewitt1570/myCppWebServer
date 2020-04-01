@@ -21,40 +21,41 @@ class Buffer{
 public:
 	Buffer():
 		buffer_(INIT_SIZE),
-		readIndex_(0);
-		writeIndex_(0);
+		readIndex_(0),
+		writeIndex_(0)
 	{
 		assert(readableBytes() == 0);
 		assert(writableBytes() == INIT_SIZE);
 	}
 	~Buffer(){}
 
-	size_t readableBytes(){  //可读字节数
+	size_t readableBytes()const{  //可读字节数
 		return writeIndex_ - readIndex_;
 	}
 
-	size_t writableBytes(){  //可写字节数
+	size_t writableBytes()const{  //可写字节数
 		return buffer_.size() - writeIndex_;
 	}
 
-	size_t preFreeSpace(){   //readIndex_ 前有多少空闲空间
+	size_t preFreeSpace()const{   //readIndex_ 前有多少空闲空间
 		return readIndex_;
 	}
 
-	const char *beginAt(){   //返回读指针
+	const char *beginAt()const{   //返回读指针
 		return __begin() + readIndex_;
 	}
 
-	void retrieve(size_t len){  //丢掉len个字节
+	void retrieve(const size_t &len){  //丢掉len个字节
 		assert(len <= readableBytes());
 		readIndex_ += len;
 	}
 
 	void retrieveAll(){   //丢弃所有数据
-		readIndex_ = writeIndex_ = 0;
+		readIndex_ = 0;
+		writeIndex_ = 0;
 	}
 
-	void retrieveUntill(const char *end){ //丢前end前的所有数据
+	void retrieveUntil(const char *end){ //丢前end前的所有数据
 		assert(beginAt()<=end);
 		assert(end <= beginWrite());
 		retrieve(end-beginAt());
@@ -77,7 +78,7 @@ public:
 	}
 
 	void append(const void *data,size_t len){
-		append(static_cast<cosnt char*>(data),len);
+		append(static_cast<const char*>(data),len);
 	}
 
 	void append(const Buffer &buf){
@@ -122,7 +123,7 @@ public:
 
 private:
 	char *__begin(){   //返回缓冲区头指针
-		return &*buffer_,begin();
+		return &*buffer_.begin();
 	}
 	
 	const char *__begin()const{
@@ -132,7 +133,7 @@ private:
 	void __makeSpace(size_t len){
 		if(writableBytes() + preFreeSpace() >=len){
 			size_t readalbe = readableBytes();
-			std::copy(beginAt(),beginWrite(),__begin());
+			std::copy(__begin()+readIndex_,__begin()+writeIndex_,__begin());
 			readIndex_ = 0;
 			writeIndex_ = readalbe;
 			assert(readalbe == readableBytes());

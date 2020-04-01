@@ -7,7 +7,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__   
 
-#define MAX_LISTEN_SIZ 1024 //listen队列上限
+#define MAX_LISTEN_SIZE 1024 //listen队列上限
 
 namespace HW_TXL{
 	

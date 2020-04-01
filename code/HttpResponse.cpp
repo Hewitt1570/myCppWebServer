@@ -16,15 +16,15 @@
 
 using namespace HW_TXL;
 
-const std::map<int,std::string> HttpResponse::stateCode_Message = {
+const std::unordered_map<int,std::string> HttpResponse::stateCode_Message = {
 	{200,"OK"},
 	{400,"Bad Request"},
 	{403,"Forbidden"},
 	{404,"Not Found"}
 };
 
-const std::map<std::string,std::string> HttpResponse::suffix_Type = {
-	{".html"."text/html"},
+const std::unordered_map<std::string,std::string> HttpResponse::suffix_Type = {
+	{".html","text/html"},
 	{".xml","text/xml"},
     {".xhtml", "application/xhtml+xml"},
     {".txt", "text/plain"},
@@ -41,12 +41,12 @@ const std::map<std::string,std::string> HttpResponse::suffix_Type = {
     {".avi", "video/x-msvideo"},
     {".gz", "application/x-gzip"},
     {".tar", "application/x-tar"},
-}
+};
 
 Buffer HttpResponse::makeResponse(){
 	Buffer output;
 
-	if(statusCode_ == 400){
+	if(stateCode_ == 400){
 		errorResponse(output,"HW_TXL can't parse the message~");
 		return output;
 	}
@@ -88,7 +88,7 @@ void HttpResponse::staticRequest(Buffer &output,long filesize){
 	//响应头部 
 	if(keepAlive_){
 		output.append("Connection: Keep-Alive\r\n");
-		output.append("Keep-Alive: timeout=500" + "\r\n");
+		output.append("Keep-Alive: timeout=500\r\n");
 	}else{
 		output.append("Connection: close\r\n");
 	}
@@ -100,7 +100,7 @@ void HttpResponse::staticRequest(Buffer &output,long filesize){
 
 	//响应正文
 	int srcFd = ::open(path_.data(),O_RDONLY);
-	void *mmapPtr = ::mmap(NULL,fileSize,PROT_READ,MAP_PRIVATE,srcFd,0);
+	void *mmapPtr = ::mmap(NULL,filesize,PROT_READ,MAP_PRIVATE,srcFd,0);
 	::close(srcFd);
 	if(mmapPtr == (void *) -1){
 		munmap(mmapPtr,filesize);
@@ -115,7 +115,7 @@ void HttpResponse::staticRequest(Buffer &output,long filesize){
 	munmap(mmapPtr,filesize);
 }
 
-void HttpResponse::errorResponse(Buffer &output,std::string message){
+void HttpResponse::errorResponse(Buffer &output,const std::string &message){
 	std::string body;
 
 	auto iter = stateCode_Message.find(stateCode_);
@@ -148,7 +148,7 @@ std::string HttpResponse::__getFileType(){
 		return "text/plain";
 	
 	std::string suffix(path_.substr(idx));
-	aotu iter = suffix_Type.find(suffix);
+	auto iter = suffix_Type.find(suffix);
 	if(iter == suffix_Type.end())
 		return "text/plain";
 	

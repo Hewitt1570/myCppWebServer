@@ -18,7 +18,7 @@ HttpHandler::HttpHandler(int fd):
 	version_(Unknown){}
 
 HttpHandler::~HttpHandler(){
-	close(fd_);
+	::close(fd_);
 }
 
 int HttpHandler::read(int &SavedErrno){
@@ -32,7 +32,7 @@ int HttpHandler::write(int &SavedErrno){
 }
 
 bool HttpHandler::parseHttp(){
-	bool ok = true,hasmore = ture;
+	bool ok = true,hasmore = true;
 	while(hasmore){
 		if(state_ == ExpectRequestLine){
 			const char *crlf = inBuffer_.findCRLF();
@@ -45,7 +45,7 @@ bool HttpHandler::parseHttp(){
 					hasmore = false;
 				}
 			}else{  //没有回车换行 解析失败
-				ok = false;
+			  	ok = false;
 				hasmore = false;
 			}
 		}else if(state_ == ExpectHeaders){
@@ -56,15 +56,15 @@ bool HttpHandler::parseHttp(){
 					__addHeader(inBuffer_.beginAt(),colon,crlf);
 				} else{
 					hasmore = false;
-					state_ = ExpectBody;
+					state_ = GotAll;
 				}
 				inBuffer_.retrieveUntil(crlf+2);
 			}else{
-				ok = false;
+			    ok = false;
 				hasmore = false;
 			}
 		}else if(state_ == ExpectBody){
-			// TODO 处理报文题
+			// TODO 处理报文
 			inBuffer_.retrieveAll();
 			state_ = GotAll;
 		}
@@ -138,18 +138,18 @@ std::string HttpHandler::getMethod() const {
 	}else if(method_ == POST){
 		ret  = "POST";
 	}else if(method_ == HEAD){
-		method_ = "HEAD";
+		ret  = "HEAD";
 	}else if(method_ == PUT){
-		method_ = "PUT";
-	}else if(method_ == DELETE){
-		method_ = "DELETE";
-	return method_;
+		ret  = "PUT";
+	}else if(method_ == DELETE)
+		ret  = "DELETE";
+	return ret;
 }
 
-std::string HttpHandler::getHeader(const std::string &field){
-	std::string ret;
-	if(headers_.count(field))ret = headers_[field];
-	return ret;
+std::string HttpHandler::getHeader(const std::string &field)const{
+	auto iter = headers_.find(field);
+	if(iter != headers_.end())return iter->second;
+	return "";
 }
 
 bool HttpHandler::keepAlive() const{

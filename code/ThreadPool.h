@@ -23,7 +23,7 @@ public:
 
 	ThreadPool(int threadNum);
 	~ThreadPool();
-	void pushJob(const Jobfunc &job);
+	void pushJob(const JobFunc &job);
 
 private:
 	std::vector<std::thread> threads_;  //线程池
@@ -31,7 +31,7 @@ private:
 	std::mutex lock_;			//互斥量 保护任务队列
 	std::condition_variable cond_; //条件变量  构成生产者消费者模型
 	bool stop_;
-}
+};
 
 }
 
