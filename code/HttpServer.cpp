@@ -81,7 +81,7 @@ void HttpServer::AcceptNewConnection(){
 		//加入到定时器中
 		timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
 		//挂到EPOLL上监听读事件 LT模式 ONESHOT模式(保证任一时刻只被一个线程处理)
-		epoll_ -> Add(acceptFd,handler,EPOLLIN | EPOLLONESHOT);
+		epoll_ -> Add(acceptFd,handler,EPOLLIN | EPOLLONESHOT | EPOLLET);
 	}
 }
 
@@ -120,7 +120,7 @@ void HttpServer::HandleRequest(HttpHandler *handler){
 	if(ret==-1 && SavedErrno==EAGAIN){
 		handler->setNoWorking();
 		timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
-		epoll_ -> Mod(handler->getfd(),handler,EPOLLIN|EPOLLONESHOT);
+		epoll_ -> Mod(handler->getfd(),handler,EPOLLIN|EPOLLONESHOT|EPOLLET);
 		return;
 	}
 	//请求报文正常读入缓冲区  开始解析报文
@@ -145,7 +145,7 @@ void HttpServer::HandleRequest(HttpHandler *handler){
 		HttpResponse response(200,handler->getPath(),handler->keepAlive());
 		handler -> appendToOutBuffer(response.makeResponse());
 //		timerManager_->addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
-		epoll_ -> Mod(handler->getfd(),handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT);
+		epoll_ -> Mod(handler->getfd(),handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT|EPOLLET);
 	}
 }
 
@@ -156,7 +156,7 @@ void HttpServer::MakeResponse(HttpHandler *handler){
 	int dataSize = handler->dataNeedToSend();
 	//缓冲区没有要发的数据 重新监听读事件
 	if(dataSize == 0){
-		epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLONESHOT);
+		epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLONESHOT|EPOLLET);
 		handler -> setNoWorking();
 		timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
 		return;
@@ -173,14 +173,14 @@ void HttpServer::MakeResponse(HttpHandler *handler){
 	//对方缓冲区满了 让出线程资源等待下次调用
 	if(ret<0 && SavedErrno==EAGAIN){
 		timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
-		epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT);
+		epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT|EPOLLET);
 		return;
 	}
 	//数据全部发送完毕
 	if(ret == dataSize){
 		if(handler -> keepAlive()){ //若为长连接 则继续监听读事件 
 			handler->resetParse();
-			epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLONESHOT);
+			epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLONESHOT|EPOLLET);
 			handler -> setNoWorking();
 			timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
 		}else{
@@ -191,6 +191,6 @@ void HttpServer::MakeResponse(HttpHandler *handler){
 	}
 	handler->setNoWorking();
 	timerManager_ -> addTimer(handler,CON_TIMEOUT,std::bind(&HttpServer::CloseConnection,this,handler));
-	epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT);
+	epoll_ -> Mod(fd,handler,EPOLLIN|EPOLLOUT|EPOLLONESHOT|EPOLLET);
 	return;
 }

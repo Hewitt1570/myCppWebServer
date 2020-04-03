@@ -10,12 +10,12 @@
 using namespace HW_TXL;
 
 int main(int argc, char **argv){
-	int port = 6666;
+	int port = 8888;
 	if(argc>=2){
 		port = atoi(argv[1]);
 	}
 	
-	int threadNum = 4;
+	int threadNum = 3;
 	if(argc>=3){
 		threadNum = atoi(argv[2]);
 	}

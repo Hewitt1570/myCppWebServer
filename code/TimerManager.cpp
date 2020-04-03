@@ -63,7 +63,7 @@ void TimerManager::handleExpiredTimers(){
 	}
 	for(int i=0;i<overTimeNum_;i++){
 		overTime_[i]->runCallBack();
-		delete overTime_;
+		delete overTime_[i];
 	}
   
 }
